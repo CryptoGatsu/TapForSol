@@ -1,0 +1,42 @@
+{
+  "name": "tapforsol",
+  "version": "1.0.0",
+  "description": "TapForSol is a free way to get sol to lock back into trading. Or maybe you just want some free sol? Does not matter, this faucet is for you.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CryptoGatsu/TapForSol.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/CryptoGatsu/TapForSol/issues"
+  },
+  "homepage": "https://github.com/CryptoGatsu/TapForSol#readme",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "better-queue": "^3.8.12",
+    "bs58": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "pg": "^8.19.0",
+    "rate-limiter-flexible": "^9.1.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.2",
+    "@types/pg": "^8.18.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

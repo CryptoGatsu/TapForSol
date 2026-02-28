@@ -1,0 +1,17 @@
+# secrets
+.env
+faucet.json
+
+# node
+node_modules
+npm-debug.log
+
+# build
+dist
+out
+
+# mac
+.DS_Store
+
+# logs
+*.log
