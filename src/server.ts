@@ -20,6 +20,18 @@ app.use(cors({
   allowedHeaders: ["Content-Type"]
 }));
 
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (!origin || !origin.includes("cryptogatsu.github.io")) {
+    return res.status(403).json({
+      error: "Direct API access blocked",
+    });
+  }
+
+  next();
+});
+
 app.use(express.json());
 
 /* --------------------------------------------------
