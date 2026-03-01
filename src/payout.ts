@@ -1,44 +1,28 @@
-import {
-  SystemProgram,
-  Transaction,
-  PublicKey,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
-import { connection, faucetKeypair } from "./solana";
+import { SystemProgram, Transaction, sendAndConfirmTransaction, PublicKey } from "@solana/web3.js";
+import { connection, getFaucetKeypair } from "./solana";
 
 const LAMPORTS = 1_000_000_000;
 
-export async function sendFaucetPayment(userWallet: string) {
-  const balance = await connection.getBalance(faucetKeypair.publicKey);
+const faucetKeypair = getFaucetKeypair();
 
-  const safety = 0.05 * LAMPORTS;
-  const available = balance - safety;
+export async function sendFaucetPayment(destination: string): Promise<string> {
 
-  if (available <= 0) throw new Error("Faucet empty");
+  const faucetKeypair = getFaucetKeypair();
+  const toPubkey = new PublicKey(destination);
 
-  const payout = Math.floor(available * 0.5);
-
-  const { blockhash } = await connection.getLatestBlockhash();
-
-  const tx = new Transaction({
-    feePayer: faucetKeypair.publicKey,
-    recentBlockhash: blockhash,
-  }).add(
+  const transaction = new Transaction().add(
     SystemProgram.transfer({
       fromPubkey: faucetKeypair.publicKey,
-      toPubkey: new PublicKey(userWallet),
-      lamports: payout,
-    }),
-    SystemProgram.transfer({
-      fromPubkey: faucetKeypair.publicKey,
-      toPubkey: new PublicKey(process.env.OWNER_WALLET!),
-      lamports: payout,
+      toPubkey,
+      lamports: 1000000 // 0.001 SOL
     })
   );
 
-  const signature = await sendAndConfirmTransaction(connection, tx, [
-    faucetKeypair,
-  ]);
+  const signature = await sendAndConfirmTransaction(
+    connection,
+    transaction,
+    [faucetKeypair]
+  );
 
   return signature;
 }
