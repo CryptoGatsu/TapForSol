@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
+import http from "http";
 
 /* --------------------------------------------------
    CREATE SERVER FIRST (VERY IMPORTANT FOR RAILWAY)
@@ -162,7 +163,9 @@ app.post("/claim", async (req: Request, res: Response) => {
 -------------------------------------------------- */
 const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
   console.log("=================================");
   console.log("🚰 TapForSol Faucet Server Online");
   console.log(`Listening on port ${PORT}`);
