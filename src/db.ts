@@ -1,8 +1,12 @@
 import { Pool } from "pg";
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set in Railway variables");
+}
+
 export const pool = new Pool({
-  user: process.env.USER, // macOS username
-  host: "localhost",
-  database: "tapforsol",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
