@@ -1,8 +1,8 @@
 import express, { Request, Response } from "express";
-import { pool } from "./db";
-import { sendFaucetPayment } from "./payout";
+import { pool } from "./db.js";
+import { sendFaucetPayment } from "./payout.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import { verifyTurnstile } from "./turnstile";
+import { verifyTurnstile } from "./turnstile.js";
 import cors from "cors";
 
 

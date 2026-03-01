@@ -1,5 +1,5 @@
 import { SystemProgram, Transaction, sendAndConfirmTransaction, PublicKey } from "@solana/web3.js";
-import { connection, getFaucetKeypair } from "./solana";
+import { connection, getFaucetKeypair } from "./solana.js";
 
 const LAMPORTS = 1_000_000_000;
 
