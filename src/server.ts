@@ -1,28 +1,33 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
+
+/* --------------------------------------------------
+   CREATE SERVER FIRST (VERY IMPORTANT FOR RAILWAY)
+-------------------------------------------------- */
+const app = express();
+
+/* ---------- RAILWAY HEALTH CHECK ---------- */
+/* Railway pings this immediately after deploy */
+app.get("/health", (_req: Request, res: Response) => {
+  return res.status(200).json({ status: "ok" });
+});
+
+/* ---------- BASIC MIDDLEWARE ---------- */
+app.use(cors({
+  origin: true, // allow GitHub Pages + custom domain
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.use(express.json());
+
+/* --------------------------------------------------
+   LOAD HEAVY MODULES ONLY AFTER SERVER EXISTS
+-------------------------------------------------- */
 import { pool } from "./db.js";
 import { sendFaucetPayment } from "./payout.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import { verifyTurnstile } from "./turnstile.js";
-import cors from "cors";
-
-
-const app = express();
-app.use(cors({
-  origin: "true",
-  methods: ["POST", "GET"],
-}));
-
-import path from "path";
-
-app.use(express.static(path.resolve("public")));
-app.use(express.json());
-
-/*
-  Root health check
-*/
-app.get("/", (_req: Request, res: Response) => {
-  res.send("TapForSol faucet server is running");
-});
 
 /*
   Faucet Settings
@@ -36,50 +41,45 @@ const MAX_CLAIMS = 2;
 let claimInProgress = false;
 
 /*
-  IP Rate Limiter
-  5 attempts per 10 minutes per IP
+  IP Rate Limit: 5 requests / 10 minutes
 */
 const ipLimiter = new RateLimiterMemory({
   points: 5,
   duration: 60 * 10,
-
-  
-
 });
 
-
-
-
-
 /*
-  Faucet Claim Endpoint
+  Root route (optional)
 */
+app.get("/", (_req: Request, res: Response) => {
+  res.send("TapForSol faucet server is running");
+});
+
+/* --------------------------------------------------
+   CLAIM ENDPOINT
+-------------------------------------------------- */
 app.post("/claim", async (req: Request, res: Response) => {
-  let ip: string = "unknown";
+  let ip: string =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+    req.socket.remoteAddress ||
+    "unknown";
 
   try {
-    /* ---------------- GET USER IP ---------------- */
-    ip =
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-      req.socket.remoteAddress ||
-      "unknown";
-
-      // ---------------- CAPTCHA CHECK ----------------
-const { token } = req.body;
-
-if (!token) {
-  return res.status(400).json({ error: "Captcha required" });
-}
-
-const human = await verifyTurnstile(token, ip);
-
-if (!human) {
-  return res.status(403).json({ error: "Captcha verification failed" });
-}
-
     console.log("Claim attempt from IP:", ip);
 
-    /* ---------------- IP RATE LIMIT ---------------- */
+    /* ---------- CAPTCHA ---------- */
+    const { wallet, token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: "Captcha required" });
+    }
+
+    const human = await verifyTurnstile(token, ip);
+    if (!human) {
+      return res.status(403).json({ error: "Captcha verification failed" });
+    }
+
+    /* ---------- RATE LIMIT ---------- */
     try {
       await ipLimiter.consume(ip);
     } catch {
@@ -88,9 +88,7 @@ if (!human) {
       });
     }
 
-    const { wallet } = req.body;
-
-    /* ---------------- BASIC VALIDATION ---------------- */
+    /* ---------- WALLET VALIDATION ---------- */
     if (!wallet || typeof wallet !== "string") {
       return res.status(400).json({ error: "Wallet address required" });
     }
@@ -99,7 +97,7 @@ if (!human) {
       return res.status(400).json({ error: "Invalid Solana address" });
     }
 
-    /* ---------------- GLOBAL LOCK ---------------- */
+    /* ---------- GLOBAL LOCK ---------- */
     if (claimInProgress) {
       return res.status(429).json({
         error: "Another claim is currently processing. Try again shortly.",
@@ -108,7 +106,7 @@ if (!human) {
 
     claimInProgress = true;
 
-    /* ---------------- ATOMIC COOLDOWN CHECK ---------------- */
+    /* ---------- COOLDOWN CHECK ---------- */
     const cooldownCheck = await pool.query(
       `
       INSERT INTO wallet_cooldowns (wallet, last_claim, claims_in_window)
@@ -135,34 +133,20 @@ if (!human) {
       });
     }
 
-    /* ---------------- RECORD CLAIM ---------------- */
+    /* ---------- RECORD CLAIM ---------- */
     await pool.query("INSERT INTO claims (wallet) VALUES ($1)", [wallet]);
 
-    console.log("Claim approved:", wallet);
-
-    /* ---------------- SEND PAYMENT ---------------- */
-    let signature: string;
-
-    try {
-      signature = await sendFaucetPayment(wallet);
-    } catch (paymentError: any) {
-      claimInProgress = false;
-
-      console.error("Payment failed:", paymentError);
-
-      return res.status(500).json({
-        error: "Faucet payment failed. Please try again later.",
-      });
-    }
+    /* ---------- SEND PAYMENT ---------- */
+    const signature = await sendFaucetPayment(wallet);
 
     claimInProgress = false;
 
-    /* ---------------- SUCCESS RESPONSE ---------------- */
     return res.json({
       status: "paid",
       tx: signature,
       explorer: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
     });
+
   } catch (err) {
     claimInProgress = false;
     console.error("Server error:", err);
@@ -173,9 +157,9 @@ if (!human) {
   }
 });
 
-/*
-  Start Server
-*/
+/* --------------------------------------------------
+   START SERVER (RAILWAY PORT!)
+-------------------------------------------------- */
 const PORT = Number(process.env.PORT) || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
