@@ -162,7 +162,7 @@ app.post("/claim", async (req: Request, res: Response) => {
 -------------------------------------------------- */
 const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log("=================================");
   console.log("🚰 TapForSol Faucet Server Online");
   console.log(`Listening on port ${PORT}`);
