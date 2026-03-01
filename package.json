@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "TapForSol is a free way to get sol to lock back into trading. Or maybe you just want some free sol? Does not matter, this faucet is for you.",
   "main": "index.js",
- "scripts": {
+"scripts": {
   "build": "tsc",
+  "prestart": "npm run build",
   "start": "node dist/server.js"
 },
   "repository": {
