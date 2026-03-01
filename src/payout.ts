@@ -14,7 +14,7 @@ export async function sendFaucetPayment(destination: string): Promise<string> {
     SystemProgram.transfer({
       fromPubkey: faucetKeypair.publicKey,
       toPubkey,
-      lamports: 1000000 // 0.001 SOL
+      lamports: 75000 // 0.000075 SOL
     })
   );
 

@@ -59,6 +59,22 @@
 <body>
 
 <h1>🚰 TapForSol</h1>
+
+<script>
+async function getFingerprint() {
+  const data = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width,
+    screen.height,
+    new Date().getTimezoneOffset()
+  ].join("|");
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+</script>
+
 <p>Claim free devnet SOL</p>
 
 <div class="box">
