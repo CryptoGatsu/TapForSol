@@ -41,11 +41,12 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use("/claim", (req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
 
-  if (!origin || !origin.includes("cryptogatsu.github.io")) {
-    return res.status(403).json({ error: "Direct API access blocked" });
+  // allow missing origin for browsers but block obvious scripts
+  if (origin && !origin.includes("cryptogatsu.github.io")) {
+    return res.status(403).json({ error: "Unauthorized origin" });
   }
 
   next();
