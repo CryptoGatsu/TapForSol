@@ -103,25 +103,38 @@ async function claim() {
     return;
   }
 
-  /* ---------------- GET FRESH CHALLENGE ---------------- */
   status.innerText = "Preparing session...";
 
-  const challengeRes = await fetch("https://tapforsol-production.up.railway.app/challenge");
-  const challengeData = await challengeRes.json();
-
-  const challengeToken = challengeData.token;
-
-  if (!challengeToken) {
-    status.innerText = "Failed to start session. Refresh.";
+  /* 1️⃣ Get challenge token */
+  let challengeToken;
+  try {
+    const challengeRes = await fetch("https://tapforsol-production.up.railway.app/challenge");
+    const challengeData = await challengeRes.json();
+    challengeToken = challengeData.token;
+  } catch (e) {
+    status.innerText = "Server unreachable. Try again.";
     return;
   }
 
-  /* ---------------- GET FINGERPRINT ---------------- */
-  const fp = await FingerprintJS.load();
-  const result = await fp.get();
-  const fingerprint = result.visitorId;
+  if (!challengeToken) {
+    status.innerText = "Failed to start session.";
+    return;
+  }
 
-  /* ---------------- CAPTCHA ---------------- */
+  /* 2️⃣ Get fingerprint (SAFE) */
+  let fingerprint = "no-fingerprint";
+
+  try {
+    if (window.FingerprintJS) {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      fingerprint = result.visitorId;
+    }
+  } catch (e) {
+    console.log("Fingerprint failed, continuing safely.");
+  }
+
+  /* 3️⃣ Captcha */
   const captchaToken = document.querySelector('[name="cf-turnstile-response"]').value;
 
   if (!captchaToken) {
@@ -131,12 +144,10 @@ async function claim() {
 
   status.innerText = "Processing claim...";
 
-  /* ---------------- CLAIM ---------------- */
+  /* 4️⃣ Claim */
   const res = await fetch("https://tapforsol-production.up.railway.app/claim", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       wallet,
       token: captchaToken,
