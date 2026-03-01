@@ -14,7 +14,7 @@ app.use(cors({
 
 import path from "path";
 
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.resolve("public")));
 app.use(express.json());
 
 /*

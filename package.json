@@ -4,7 +4,8 @@
   "description": "TapForSol is a free way to get sol to lock back into trading. Or maybe you just want some free sol? Does not matter, this faucet is for you.",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
   },
   "repository": {
     "type": "git",
