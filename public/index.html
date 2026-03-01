@@ -97,7 +97,7 @@ async function claim() {
   status.innerText = "Processing claim...";
 
   try {
-    const res = await fetch("/claim", {
+    const res = await fetch("https://tapforsol-production.up.railway.app/claim", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
