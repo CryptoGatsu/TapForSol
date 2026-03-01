@@ -176,11 +176,11 @@ if (!human) {
 /*
   Start Server
 */
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("=================================");
   console.log("🚰 TapForSol Faucet Server Online");
-  console.log(`Listening on http://localhost:${PORT}`);
+  console.log(`Listening on port ${PORT}`);
   console.log("=================================");
 });
