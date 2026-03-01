@@ -98,45 +98,62 @@ async function claim() {
   const wallet = document.getElementById("wallet").value;
   const status = document.getElementById("status");
 
-  const token = document.querySelector('[name="cf-turnstile-response"]').value;
-
   if (!wallet) {
     status.innerText = "Enter wallet address";
     return;
   }
 
-  if (!token) {
+  /* ---------------- GET FRESH CHALLENGE ---------------- */
+  status.innerText = "Preparing session...";
+
+  const challengeRes = await fetch("https://tapforsol-production.up.railway.app/challenge");
+  const challengeData = await challengeRes.json();
+
+  const challengeToken = challengeData.token;
+
+  if (!challengeToken) {
+    status.innerText = "Failed to start session. Refresh.";
+    return;
+  }
+
+  /* ---------------- GET FINGERPRINT ---------------- */
+  const fp = await FingerprintJS.load();
+  const result = await fp.get();
+  const fingerprint = result.visitorId;
+
+  /* ---------------- CAPTCHA ---------------- */
+  const captchaToken = document.querySelector('[name="cf-turnstile-response"]').value;
+
+  if (!captchaToken) {
     status.innerText = "Complete captcha first";
     return;
   }
 
   status.innerText = "Processing claim...";
 
-  try {
-    const res = await fetch("https://tapforsol-production.up.railway.app/claim", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        wallet: wallet,
-        token: token
-      })
-    });
+  /* ---------------- CLAIM ---------------- */
+  const res = await fetch("https://tapforsol-production.up.railway.app/claim", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      wallet,
+      token: captchaToken,
+      challengeToken,
+      fingerprint
+    })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    if (data.tx) {
-      status.innerHTML =
-        "Success!<br><a target='_blank' href='" +
-        data.explorer +
-        "'>View Transaction</a>";
-    } else {
-      status.innerText = data.error;
-    }
-
-  } catch (err) {
-    status.innerText = "Server error";
+  if (data.tx) {
+    status.innerHTML =
+      "Success!<br><a target='_blank' href='" +
+      data.explorer +
+      "'>View Transaction</a>";
+  } else {
+    status.innerText = data.error || "Claim failed";
   }
 }
 </script>
