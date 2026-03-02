@@ -14,6 +14,15 @@ import { waitForRewardDeposit } from "./waitForRewards.js";
 import { holdsTapForSol } from "./hasToken.js";
 import { getUserReward } from "./rewardMath.js";
 
+/* Force wallet load at boot so Railway validates env vars */
+try {
+  const wallet = getFaucetKeypair();
+  console.log("🔐 Faucet signer ready:", wallet.publicKey.toBase58());
+} catch (err) {
+  console.error("FATAL: Faucet wallet failed to load");
+  process.exit(1);
+}
+
 const app = express();
 
 const COOLDOWN_HOURS = 8;
