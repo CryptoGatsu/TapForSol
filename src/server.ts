@@ -42,7 +42,11 @@ app.use(express.json());
 
 app.use("/claim", (req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
-  if (origin && !origin.includes("cryptogatsu.github.io")) {
+  if (
+  origin &&
+  !origin.includes("tapforsol.fun") &&
+  !origin.includes("cryptogatsu.github.io")
+) {
     return res.status(403).json({ error: "Unauthorized origin" });
   }
   next();
