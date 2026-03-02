@@ -28,6 +28,7 @@
     "express": "^5.2.1",
     "pg": "^8.19.0",
     "rate-limiter-flexible": "^9.1.1",
+    "tweetnacl": "^1.0.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
