@@ -1,19 +1,14 @@
-import { connection } from "./solana.js";
-import { PublicKey } from "@solana/web3.js";
-
-const CREATOR_WALLET = process.env.CREATOR_WALLET_PUBLIC;
-
-if (!CREATOR_WALLET) {
-  throw new Error("CREATOR_WALLET_PUBLIC not set");
-}
-
-const CREATOR = new PublicKey(CREATOR_WALLET);
+import { connection, getFaucetKeypair } from "./solana.js";
 
 export async function waitForRewardDeposit(previousBalance: number): Promise<number> {
 
-  for (let i = 0; i < 15; i++) {
+  const faucet = getFaucetKeypair();
 
-    const currentBalance = await connection.getBalance(CREATOR);
+  for (let i = 0; i < 20; i++) {
+
+    const currentBalance = await connection.getBalance(faucet.publicKey);
+
+    console.log("Checking faucet balance:", currentBalance);
 
     if (currentBalance > previousBalance) {
       return currentBalance - previousBalance;
