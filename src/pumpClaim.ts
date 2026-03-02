@@ -5,13 +5,13 @@ export async function claimPumpFees() {
 
   const faucet = getFaucetKeypair();
 
-  const res = await fetch("https://pumpportal.fun/api/creator-fee", {
+  const res = await fetch("https://pumpportal.fun/api/claim-fees", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      wallet: faucet.publicKey.toBase58()
+      creator: faucet.publicKey.toBase58()
     })
   });
 
@@ -23,20 +23,21 @@ export async function claimPumpFees() {
 
   const data = await res.json();
 
-  if (!data.transaction) {
-    throw new Error("No claimable rewards yet");
+  // IMPORTANT: No rewards yet case
+  if (!data || !data.transaction) {
+    throw new Error("No creator rewards available yet");
   }
 
-  // deserialize transaction
   const tx = VersionedTransaction.deserialize(
     Buffer.from(data.transaction, "base64")
   );
 
-  // sign
   tx.sign([faucet]);
 
-  // send to Solana
-  const sig = await connection.sendTransaction(tx);
+  const sig = await connection.sendTransaction(tx, {
+    skipPreflight: false,
+    maxRetries: 3
+  });
 
   await connection.confirmTransaction(sig, "confirmed");
 
