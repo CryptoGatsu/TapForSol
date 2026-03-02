@@ -5,143 +5,54 @@
 <title>TapForSol</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Cloudflare Turnstile -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
-
-/* ---------- GLOBAL ---------- */
-
 body{
   margin:0;
   background: radial-gradient(circle at top,#0b1022,#020617 70%);
-  font-family: Inter, system-ui, Arial;
+  font-family: Arial;
   color:white;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
-
-/* ---------- CARD ---------- */
-
 .card{
   width:420px;
   max-width:92%;
   background:rgba(30,41,59,.75);
   backdrop-filter: blur(12px);
   border-radius:18px;
-  padding:30px 26px 28px 26px;
-  box-shadow:
-    0 0 30px rgba(124,58,237,.25),
-    0 0 60px rgba(34,211,238,.15);
+  padding:30px;
   text-align:center;
 }
-
-/* ---------- LOGO ---------- */
-
-.logo{
-  width:260px;
-  margin:auto;
-  margin-bottom:10px;
-  filter: drop-shadow(0 0 15px rgba(168,85,247,.7));
-}
-
-.subtitle{
-  opacity:.8;
-  margin-bottom:22px;
-  font-size:15px;
-}
-
-/* ---------- INPUT ---------- */
-
+.logo{width:240px;margin-bottom:10px;}
 input{
-  width:100%;
-  padding:14px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.1);
-  background:#020617;
-  color:white;
-  font-size:15px;
-  margin-bottom:18px;
-  outline:none;
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:#020617;color:white;margin-bottom:15px;
 }
-
-input:focus{
-  border:1px solid #22d3ee;
-  box-shadow:0 0 12px rgba(34,211,238,.4);
-}
-
-/* ---------- BUTTON ---------- */
-
 button{
-  width:100%;
-  padding:14px;
-  border-radius:12px;
-  border:none;
+  width:100%;padding:14px;border-radius:12px;border:none;
   background:linear-gradient(90deg,#22d3ee,#a855f7);
-  color:white;
-  font-weight:600;
-  font-size:16px;
-  cursor:pointer;
-  transition:.18s;
+  color:white;font-weight:bold;cursor:pointer;
 }
-
-button:hover{
-  transform:translateY(-1px);
-  box-shadow:0 0 18px rgba(168,85,247,.7);
+#status{margin-top:15px;}
+.feed{
+position:fixed;
+right:20px;
+bottom:20px;
+width:260px;
+font-size:13px;
 }
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
+.feed div{
+background:rgba(15,23,42,.9);
+padding:10px;
+margin-top:8px;
+border-radius:10px;
+box-shadow:0 0 12px rgba(34,211,238,.3);
 }
-
-/* ---------- STATUS ---------- */
-
-#status{
-  margin-top:18px;
-  min-height:40px;
-  font-size:14px;
-  opacity:.9;
-}
-
-.success{
-  color:#4ade80;
-}
-
-.error{
-  color:#f87171;
-}
-
-.txlink{
-  display:inline-block;
-  margin-top:10px;
-  padding:10px 14px;
-  background:#111827;
-  border-radius:10px;
-  text-decoration:none;
-  color:#22d3ee;
-  font-weight:600;
-}
-
-.loader{
-  margin-top:10px;
-  border:3px solid rgba(255,255,255,.15);
-  border-top:3px solid #22d3ee;
-  border-radius:50%;
-  width:20px;
-  height:20px;
-  animation:spin 1s linear infinite;
-  margin-left:auto;
-  margin-right:auto;
-}
-
-@keyframes spin{
-  0%{transform:rotate(0deg)}
-  100%{transform:rotate(360deg)}
-}
-
 </style>
 </head>
 
@@ -149,89 +60,66 @@ button:disabled{
 
 <div class="card">
 
-<img src="tapforsol-logo.png" class="logo">
+<img src="./tapforsol-logo.png" class="logo">
 
-<div class="subtitle">Claim free SOL from real trading rewards</div>
+<p>Claim free SOL from real trading rewards</p>
 
 <input id="wallet" placeholder="Enter Solana wallet address">
 
 <div class="cf-turnstile" data-sitekey="0x4AAAAAACkDEgQxsQv369rM"></div>
 
-<button id="claimBtn" onclick="claim()">Claim SOL</button>
+<button onclick="claim()">Claim SOL</button>
 
 <div id="status"></div>
 
 </div>
 
+<div id="feed" class="feed"></div>
+
 <script>
 
-/* ---------- FINGERPRINT ---------- */
+const socket = io("https://tapforsol-production.up.railway.app");
 
-async function getFingerprint(){
-  const data=[navigator.userAgent,navigator.language,screen.width,screen.height,new Date().getTimezoneOffset()].join("|");
-  const hashBuffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(data));
-  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
-/* ---------- CLAIM ---------- */
+socket.on("new-claim", data => {
+  const short=data.wallet.slice(0,4)+"..."+data.wallet.slice(-4);
+  const div=document.createElement("div");
+  div.innerHTML=`💧 ${data.amount.toFixed(3)} SOL claimed by ${short}`;
+  const feed=document.getElementById("feed");
+  feed.prepend(div);
+  if(feed.children.length>6) feed.removeChild(feed.lastChild);
+});
 
 async function claim(){
 
-  const wallet=document.getElementById("wallet").value.trim();
+  const wallet=document.getElementById("wallet").value;
   const status=document.getElementById("status");
-  const btn=document.getElementById("claimBtn");
 
-  if(!wallet){
-    status.innerHTML="<span class='error'>Enter a wallet address</span>";
-    return;
-  }
+  status.innerText="Preparing session...";
 
-  btn.disabled=true;
-  status.innerHTML="Preparing secure session...<div class='loader'></div>";
+  const challenge=await fetch("https://tapforsol-production.up.railway.app/challenge");
+  const challengeData=await challenge.json();
 
-  /* challenge */
-  let challengeToken;
-  try{
-    const challengeRes=await fetch("https://tapforsol-production.up.railway.app/challenge");
-    const challengeData=await challengeRes.json();
-    challengeToken=challengeData.token;
-  }catch{
-    status.innerHTML="<span class='error'>Server unreachable</span>";
-    btn.disabled=false;
-    return;
-  }
-
-  /* fingerprint */
-  const fingerprint=await getFingerprint();
-
-  /* captcha */
-  const captchaToken=document.querySelector('[name="cf-turnstile-response"]').value;
-  if(!captchaToken){
-    status.innerHTML="<span class='error'>Complete captcha first</span>";
-    btn.disabled=false;
-    return;
-  }
-
-  status.innerHTML="Processing claim...<div class='loader'></div>";
+  const captcha=document.querySelector('[name="cf-turnstile-response"]').value;
 
   const res=await fetch("https://tapforsol-production.up.railway.app/claim",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({wallet,token:captchaToken,challengeToken,fingerprint})
+    body:JSON.stringify({
+      wallet,
+      token:captcha,
+      challengeToken:challengeData.token,
+      fingerprint:"browser"
+    })
   });
 
   const data=await res.json();
 
   if(data.tx){
-    status.innerHTML=
-      "<div class='success'>SOL Sent Successfully!</div>"+
-      "<a class='txlink' target='_blank' href='"+data.explorer+"'>View Transaction</a>";
+    status.innerHTML=`Success! <a target="_blank" href="${data.explorer}">View Transaction</a>`;
   }else{
-    status.innerHTML="<span class='error'>"+(data.error||"Claim failed")+"</span>";
-    btn.disabled=false;
+    status.innerText=data.error;
   }
 }
-
 </script>
 
 </body>
