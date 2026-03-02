@@ -1,12 +1,12 @@
 export async function claimPumpFees(): Promise<void> {
 
-  const response = await fetch("https://pumpportal.fun/creator-fee/", {
+  const response = await fetch("https://pumpportal.fun/creator-fee", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      creator: process.env.CREATOR_WALLET_PUBLIC
+      wallet: process.env.CREATOR_WALLET_PUBLIC
     })
   });
 
@@ -16,5 +16,6 @@ export async function claimPumpFees(): Promise<void> {
     throw new Error("Pump fee claim failed");
   }
 
-  console.log("Pump.fun creator fees claimed");
+  const data = await response.text();
+  console.log("Pump.fun response:", data);
 }
