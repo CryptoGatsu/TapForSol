@@ -1,36 +1,44 @@
-import { getFaucetKeypair } from "./solana.js";
-import bs58 from "bs58";
-import nacl from "tweetnacl";
+import { connection, getFaucetKeypair } from "./solana.js";
+import { VersionedTransaction } from "@solana/web3.js";
 
-export async function claimPumpFees(): Promise<void> {
+export async function claimPumpFees() {
 
-  const keypair = getFaucetKeypair();
+  const faucet = getFaucetKeypair();
 
-  // PumpPortal requires signed auth message
-  const message = new TextEncoder().encode(
-    `claim_creator_rewards_${keypair.publicKey.toBase58()}`
-  );
-
-  const signature = nacl.sign.detached(message, keypair.secretKey);
-
-  const response = await fetch("https://pumpportal.fun/api/creator-fee", {
+  const res = await fetch("https://pumpportal.fun/api/creator-fee", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      wallet: keypair.publicKey.toBase58(),
-      message: bs58.encode(message),
-      signature: bs58.encode(signature)
-    }),
+      wallet: faucet.publicKey.toBase58()
+    })
   });
 
-  if (!response.ok) {
-    const text = await response.text();
+  if (!res.ok) {
+    const text = await res.text();
     console.error("PumpPortal error:", text);
     throw new Error("Pump fee claim failed");
   }
 
-  const data = await response.text();
-  console.log("Pump.fun claim response:", data);
+  const data = await res.json();
+
+  if (!data.transaction) {
+    throw new Error("No claimable rewards yet");
+  }
+
+  // deserialize transaction
+  const tx = VersionedTransaction.deserialize(
+    Buffer.from(data.transaction, "base64")
+  );
+
+  // sign
+  tx.sign([faucet]);
+
+  // send to Solana
+  const sig = await connection.sendTransaction(tx);
+
+  await connection.confirmTransaction(sig, "confirmed");
+
+  console.log("Pump rewards claimed:", sig);
 }
